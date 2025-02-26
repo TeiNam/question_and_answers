@@ -3,6 +3,7 @@ import asyncmy
 import asyncmy.cursors
 import logging
 from app.core.config import settings
+from contextlib import asynccontextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -10,8 +11,8 @@ logger = logging.getLogger(__name__)
 mysql_pool = None
 
 
-async def get_mysql_pool():
-    """MySQL 연결 풀 가져오기"""
+async def init_db_pool():
+    """MySQL 연결 풀 초기화"""
     global mysql_pool
     if mysql_pool is None:
         try:
@@ -29,17 +30,38 @@ async def get_mysql_pool():
         except Exception as e:
             logger.error(f"MySQL 연결 풀 생성 오류: {e}")
             raise
-    return mysql_pool
 
 
-async def get_mysql_connection():
-    """MySQL 연결 가져오기"""
-    pool = await get_mysql_pool()
-    conn = await pool.acquire()
+async def get_db():
+    """FastAPI 의존성 주입을 위한 데이터베이스 연결 제공자"""
+    global mysql_pool
+    if mysql_pool is None:
+        await init_db_pool()
+
+    conn = await mysql_pool.acquire()
     try:
         yield conn
     finally:
-        await pool.release(conn)
+        await mysql_pool.release(conn)
+
+
+@asynccontextmanager
+async def transaction():
+    """데이터베이스 트랜잭션 컨텍스트 매니저"""
+    global mysql_pool
+    if mysql_pool is None:
+        await init_db_pool()
+
+    conn = await mysql_pool.acquire()
+    try:
+        await conn.begin()
+        yield conn
+        await conn.commit()
+    except Exception as e:
+        await conn.rollback()
+        raise e
+    finally:
+        await mysql_pool.release(conn)
 
 
 async def close_db_connections():

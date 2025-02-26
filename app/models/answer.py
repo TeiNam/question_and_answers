@@ -1,6 +1,6 @@
 # app/models/answer.py
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
 
@@ -19,6 +19,12 @@ class AnswerUpdate(BaseModel):
     is_correct: Optional[str] = None
     note: Optional[str] = None
 
+    @validator('is_correct')
+    def validate_is_correct(cls, v):
+        if v is not None and v not in ["Y", "N"]:
+            raise ValueError("is_correct는 'Y' 또는 'N'이어야 합니다.")
+        return v
+
 
 class AnswerInDB(AnswerBase):
     answer_id: int
@@ -29,14 +35,3 @@ class AnswerInDB(AnswerBase):
 
 class Answer(AnswerInDB):
     pass
-
-
-# 문제와 답변을 함께 보여주는 모델
-class QuestionWithAnswers(Question):
-    answers: List[Answer] = []
-
-
-# 사용자가 제출한 답변 검증용 모델
-class SubmitAnswer(BaseModel):
-    question_id: int
-    selected_answer_ids: List[int]

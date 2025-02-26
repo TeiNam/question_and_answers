@@ -1,13 +1,12 @@
 # main.py
 import logging
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-import importlib
-import os
-import glob
+from fastapi.responses import JSONResponse
 from app.core.config import settings
-from app.core.database import close_db_connections
+from app.core.database import close_db_connections, init_db_pool
 from app.api.routes import api_router
+from app.core.exceptions import NotFoundException, DatabaseException, ValidationException
 from contextlib import asynccontextmanager
 
 # 로깅 설정
@@ -26,6 +25,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # 시작 시 실행
     logger.info("서버 시작 중... 🚀")
+    await init_db_pool()
     yield
     # 종료 시 실행
     logger.info("서버 종료 중... 👋")
@@ -49,6 +49,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 전역 예외 핸들러
+@app.exception_handler(NotFoundException)
+async def not_found_exception_handler(request: Request, exc: NotFoundException):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": exc.detail},
+    )
+
+@app.exception_handler(DatabaseException)
+async def database_exception_handler(request: Request, exc: DatabaseException):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": exc.detail},
+    )
+
+@app.exception_handler(ValidationException)
+async def validation_exception_handler(request: Request, exc: ValidationException):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": exc.detail},
+    )
 
 # API 라우터 추가
 app.include_router(api_router, prefix=settings.API_V1_STR)
