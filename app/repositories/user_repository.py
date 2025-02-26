@@ -46,7 +46,18 @@ class UserRepository(BaseRepository[User]):
         cursor = await cls.execute_query(query, (email,), conn)
         result = await cursor.fetchone()
 
-        return User(**result) if result else None
+        # 결과가 없으면 None 반환
+        if not result:
+            return None
+
+        # 튜플 결과를 딕셔너리로 변환
+        if not isinstance(result, dict) and hasattr(cursor, 'description'):
+            column_names = [column[0] for column in cursor.description]
+            result_dict = dict(zip(column_names, result))
+            return User(**result_dict)
+        else:
+            # 이미 딕셔너리 형태인 경우
+            return User(**result)
 
     @classmethod
     async def update_password(cls, user_id: int, hashed_password: str, conn: Connection = None) -> bool:
@@ -75,6 +86,17 @@ class UserRepository(BaseRepository[User]):
         query = "SELECT * FROM user WHERE role = %s ORDER BY user_id"
 
         cursor = await cls.execute_query(query, (role,), conn)
-        results = await cursor.fetchall()
+        rows = await cursor.fetchall()
 
-        return [User(**result) for result in results]
+        # 결과가 없으면 빈 리스트 반환
+        if not rows:
+            return []
+
+        # 튜플 결과를 딕셔너리로 변환 (첫 번째 결과가 딕셔너리가 아닌 경우)
+        if rows and not isinstance(rows[0], dict) and hasattr(cursor, 'description'):
+            column_names = [column[0] for column in cursor.description]
+            result_dicts = [dict(zip(column_names, row)) for row in rows]
+            return [User(**result_dict) for result_dict in result_dicts]
+        else:
+            # 이미 딕셔너리 형태인 경우
+            return [User(**row) for row in rows]

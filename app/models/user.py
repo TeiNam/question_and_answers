@@ -34,6 +34,7 @@ class UserUpdate(BaseModel):
 
 class UserInDB(UserBase):
     user_id: int
+    password: str  # 비밀번호 필드 추가
     is_active: str
     is_admin: str
     role: str

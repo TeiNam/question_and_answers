@@ -191,3 +191,20 @@ class UserService:
         except Exception as e:
             logger.error(f"역할별 사용자 목록 조회 중 오류 발생: {e}")
             raise DatabaseException(str(e))
+
+    @staticmethod
+    async def get_all_users(admin_id: int) -> List[User]:
+        """모든 사용자 목록 조회 (관리자만 가능)"""
+        try:
+            # 관리자 권한 확인
+            admin = await UserRepository.get_by_id(admin_id)
+            if not admin or admin.role != "admin":
+                raise ForbiddenException("사용자 목록을 조회할 권한이 없습니다.")
+
+            # 모든 사용자 조회
+            return await UserRepository.get_all()
+        except ForbiddenException:
+            raise
+        except Exception as e:
+            logger.error(f"사용자 목록 조회 중 오류 발생: {e}")
+            raise DatabaseException(str(e))

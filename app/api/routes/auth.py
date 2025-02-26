@@ -1,11 +1,11 @@
 # app/api/routes/auth.py
-from typing import Dict, Any
+from typing import List, Dict, Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.api.dependencies import get_current_active_user
-from app.core.exceptions import ValidationException, UnauthorizedException
+from app.api.dependencies import get_current_active_user, get_current_admin_user
+from app.core.exceptions import ValidationException, UnauthorizedException, ForbiddenException
 from app.models.user import UserCreate, UserLogin, UserUpdate, User
 from app.services.user_service import UserService
 
@@ -94,4 +94,47 @@ async def update_user_me(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"사용자 정보 업데이트 중 오류 발생: {str(e)}"
+        )
+
+
+@router.get("/users", response_model=List[Dict[str, Any]])
+async def get_users(
+        role: Optional[str] = Query(None, description="사용자 역할 필터링 (admin, creator, solver)"),
+        current_user: User = Depends(get_current_admin_user)  # 관리자만 접근 가능
+):
+    """사용자 목록 조회 (관리자 권한 필요)
+    role 매개변수를 제공하면 특정 역할의 사용자만 필터링하여 조회"""
+    try:
+        # UserService에 해당 기능 추가 필요
+        if role:
+            users = await UserService.get_users_by_role(role, current_user.user_id)
+        else:
+            users = await UserService.get_all_users(current_user.user_id)
+
+        return [
+            {
+                "user_id": user.user_id,
+                "email": user.email,
+                "username": user.username,
+                "role": user.role,
+                "is_active": user.is_active == "Y",
+                "is_admin": user.is_admin == "Y",
+                "create_at": user.create_at
+            }
+            for user in users
+        ]
+    except ForbiddenException as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e.detail)
+        )
+    except ValidationException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e.detail)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"사용자 목록 조회 중 오류 발생: {str(e)}"
         )

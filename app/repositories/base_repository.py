@@ -23,14 +23,14 @@ class BaseRepository(Generic[T]):
     async def execute_query(cls, query: str, params: tuple = None, conn: Connection = None, auto_close: bool = True):
         """쿼리 실행 및 커넥션 관리 공통 메서드"""
         if conn:
-            async with conn.cursor() as cursor:
+            async with conn.cursor() as cursor:  # dictionary=True 제거
                 await cursor.execute(query, params)
                 return cursor
         else:
             db_gen = get_db()
             conn = await db_gen.__anext__()
             try:
-                async with conn.cursor() as cursor:
+                async with conn.cursor() as cursor:  # dictionary=True 제거
                     await cursor.execute(query, params)
                     return cursor
             finally:
@@ -64,7 +64,18 @@ class BaseRepository(Generic[T]):
         cursor = await cls.execute_query(query, (id_value,), conn)
         result = await cursor.fetchone()
 
-        return cls.model_class(**result) if result else None
+        # 결과가 없으면 None 반환
+        if not result:
+            return None
+
+        # 튜플 결과를 딕셔너리로 변환
+        if not isinstance(result, dict) and hasattr(cursor, 'description'):
+            column_names = [column[0] for column in cursor.description]
+            result_dict = dict(zip(column_names, result))
+            return cls.model_class(**result_dict)
+        else:
+            # 이미 딕셔너리 형태인 경우
+            return cls.model_class(**result)
 
     @classmethod
     async def get_all(cls,
@@ -92,9 +103,20 @@ class BaseRepository(Generic[T]):
                 query += f" OFFSET {offset}"
 
         cursor = await cls.execute_query(query, params, conn)
-        results = await cursor.fetchall()
+        rows = await cursor.fetchall()
 
-        return [cls.model_class(**result) for result in results]
+        # 결과가 없으면 빈 리스트 반환
+        if not rows:
+            return []
+
+        # 튜플 결과를 딕셔너리로 변환 (첫 번째 결과가 딕셔너리가 아닌 경우)
+        if rows and not isinstance(rows[0], dict) and hasattr(cursor, 'description'):
+            column_names = [column[0] for column in cursor.description]
+            result_dicts = [dict(zip(column_names, row)) for row in rows]
+            return [cls.model_class(**result_dict) for result_dict in result_dicts]
+        else:
+            # 이미 딕셔너리 형태인 경우
+            return [cls.model_class(**row) for row in rows]
 
     @classmethod
     async def update(cls, id_value: int, update_data: Union[Dict, BaseModel], conn: Connection = None) -> bool:
