@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class Settings(BaseSettings):
+class Settings:
     # 기본 환경 설정
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
     VERSION: str = "0.1.0"
@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     PORT: int = int(os.getenv("PORT", "8000"))
 
     # CORS 설정
-    ALLOWED_ORIGINS: List[str] = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    # 단순히 문자열을 분할하는 방식으로 처리
+    _origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+    ALLOWED_ORIGINS: List[str] = [origin.strip() for origin in _origins.split(",") if origin.strip()]
 
     # MySQL 설정
     MYSQL_HOST: str = os.getenv("MYSQL_HOST", "localhost")
@@ -35,6 +37,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"  # 알 수 없는 필드는 무시
 
 
 # 설정 인스턴스 생성

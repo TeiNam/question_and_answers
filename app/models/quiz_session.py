@@ -25,8 +25,8 @@ class SessionQuestionBase(BaseModel):
     session_id: int
     question_id: int
     order_num: int
-    is_answered: str = Field("N", regex='^[YN]$')
-    is_correct: str = Field("N", regex='^[YN]$')
+    is_answered: str = Field("N", pattern='^[YN]$')
+    is_correct: str = Field("N", pattern='^[YN]$')
 
 class SessionQuestionCreate(SessionQuestionBase):
     pass

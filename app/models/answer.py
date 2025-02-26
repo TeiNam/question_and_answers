@@ -7,7 +7,7 @@ from datetime import datetime
 class AnswerBase(BaseModel):
     question_id: int
     answer_text: str
-    is_correct: str = Field(..., regex='^[YN]$')  # "Y" 또는 "N"만 허용
+    is_correct: str = Field(..., pattern='^[YN]$')  # "Y" 또는 "N"만 허용
 
 
 class AnswerCreate(AnswerBase):

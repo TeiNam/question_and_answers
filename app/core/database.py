@@ -1,6 +1,5 @@
 # app/core/database.py
 import asyncmy
-import asyncmy.cursors
 import logging
 from app.core.config import settings
 from contextlib import asynccontextmanager
@@ -23,7 +22,6 @@ async def init_db_pool():
                 password=settings.MYSQL_PASSWORD,
                 db=settings.MYSQL_DB,
                 charset="utf8mb4",
-                cursorclass=asyncmy.cursors.DictCursor,
                 autocommit=True,
             )
             logger.info("MySQL 연결 풀이 성공적으로 생성되었습니다! 🎯")

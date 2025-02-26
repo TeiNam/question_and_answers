@@ -6,7 +6,7 @@ from datetime import datetime
 
 class CategoryBase(BaseModel):
     name: str = Field(..., max_length=100)
-    is_use: str = Field("Y", regex='^[YN]$')  # "Y" 또는 "N"만 허용
+    is_use: str = Field("Y", pattern='^[YN]$')  # "Y" 또는 "N"만 허용
 
 
 class CategoryCreate(CategoryBase):

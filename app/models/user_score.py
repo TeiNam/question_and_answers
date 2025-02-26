@@ -6,7 +6,7 @@ from datetime import datetime
 class UserScoreBase(BaseModel):
     user_id: int
     question_id: int
-    is_correct: str = Field("N", regex='^[YN]$')
+    is_correct: str = Field("N", pattern='^[YN]$')
     selected_answers: str  # 쉼표로 구분된 답변 ID 목록
 
 class UserScoreCreate(UserScoreBase):
