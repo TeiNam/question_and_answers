@@ -13,6 +13,7 @@ from app.core.exceptions import NotFoundException, DatabaseException
 
 logger = logging.getLogger(__name__)
 
+
 class QnAService:
     @staticmethod
     async def create_question_with_answers(
@@ -67,7 +68,8 @@ class QnAService:
     async def get_all_questions_with_answers(
             skip: int = 0,
             limit: int = 10,
-            category_id: Optional[int] = None
+            category_id: Optional[int] = None,
+            is_random: bool = False
     ) -> List[QuestionWithAnswers]:
         """모든 질문과 답변 조회 (페이지네이션 포함)"""
         try:
@@ -77,7 +79,7 @@ class QnAService:
                 if not category:
                     raise NotFoundException(f"ID가 {category_id}인 카테고리를 찾을 수 없습니다.")
 
-            return await QnARepository.get_all_questions_with_answers(skip, limit, category_id)
+            return await QnARepository.get_all_questions_with_answers(skip, limit, category_id, is_random)
         except NotFoundException:
             raise
         except Exception as e:
