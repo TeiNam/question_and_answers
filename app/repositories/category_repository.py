@@ -1,26 +1,23 @@
-# app/repositories/question_repository.py
+# app/repositories/category_repository.py
 import logging
 from typing import List, Optional
-from app.models.question import Question, QuestionCreate, QuestionUpdate
+from app.models.category import Category, CategoryCreate, CategoryUpdate
 from app.core.database import get_mysql_connection
 
 logger = logging.getLogger(__name__)
 
 
-class QuestionRepository:
+class CategoryRepository:
     @staticmethod
-    async def create(question: QuestionCreate, conn=None) -> int:
-        """새 질문 생성"""
+    async def create(category: CategoryCreate, conn=None) -> int:
+        """새 카테고리 생성"""
         query = """
-        INSERT INTO question (category_id, answer_type, question_text, note, link_url)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO category (name, is_use)
+        VALUES (%s, %s)
         """
         values = (
-            question.category_id,
-            question.answer_type,
-            question.question_text,
-            question.note,
-            question.link_url
+            category.name,
+            category.is_use
         )
 
         if conn:
@@ -37,42 +34,36 @@ class QuestionRepository:
                     return cursor.lastrowid
 
     @staticmethod
-    async def get_by_id(question_id: int, conn=None) -> Optional[Question]:
-        """ID로 질문 조회"""
-        query = "SELECT * FROM question WHERE question_id = %s"
+    async def get_by_id(category_id: int, conn=None) -> Optional[Category]:
+        """ID로 카테고리 조회"""
+        query = "SELECT * FROM category WHERE category_id = %s"
 
         if conn:
             async with conn.cursor() as cursor:
-                await cursor.execute(query, (question_id,))
+                await cursor.execute(query, (category_id,))
                 result = await cursor.fetchone()
         else:
             pool = await get_mysql_connection()
             async with pool as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute(query, (question_id,))
+                    await cursor.execute(query, (category_id,))
                     result = await cursor.fetchone()
 
-        return Question(**result) if result else None
+        return Category(**result) if result else None
 
     @staticmethod
-    async def get_all(
-            skip: int = 0,
-            limit: int = 100,
-            category_id: Optional[int] = None,
-            conn=None
-    ) -> List[Question]:
-        """모든 질문 조회 (페이지네이션 포함, 카테고리별 필터링 지원)"""
-        query = "SELECT * FROM question"
+    async def get_all(is_use: Optional[str] = None, conn=None) -> List[Category]:
+        """모든 카테고리 조회 (사용 상태 필터링 옵션)"""
+        query = "SELECT * FROM category"
         params = []
 
-        # 카테고리 필터링
-        if category_id:
-            query += " WHERE category_id = %s"
-            params.append(category_id)
+        # 사용 여부 필터링
+        if is_use:
+            query += " WHERE is_use = %s"
+            params.append(is_use)
 
-        # 정렬 및 페이지네이션
-        query += " ORDER BY question_id DESC LIMIT %s, %s"
-        params.extend([skip, limit])
+        # 정렬
+        query += " ORDER BY name ASC"
 
         if conn:
             async with conn.cursor() as cursor:
@@ -85,38 +76,32 @@ class QuestionRepository:
                     await cursor.execute(query, params)
                     results = await cursor.fetchall()
 
-        return [Question(**result) for result in results]
+        return [Category(**result) for result in results]
 
     @staticmethod
     async def update(
-            question_id: int,
-            question_update: QuestionUpdate,
+            category_id: int,
+            category_update: CategoryUpdate,
             conn=None
     ) -> bool:
-        """질문 업데이트"""
+        """카테고리 업데이트"""
         # 업데이트할 필드 구성 (None이 아닌 필드만)
         update_fields = {}
-        if question_update.category_id is not None:
-            update_fields["category_id"] = question_update.category_id
-        if question_update.question_text is not None:
-            update_fields["question_text"] = question_update.question_text
-        if question_update.answer_type is not None:
-            update_fields["answer_type"] = question_update.answer_type
-        if question_update.note is not None:
-            update_fields["note"] = question_update.note
-        if question_update.link_url is not None:
-            update_fields["link_url"] = question_update.link_url
+        if category_update.name is not None:
+            update_fields["name"] = category_update.name
+        if category_update.is_use is not None:
+            update_fields["is_use"] = category_update.is_use
 
         if not update_fields:
             return True  # 업데이트할 필드가 없음
 
         # 쿼리 구성
         set_clause = ", ".join(f"{field} = %s" for field in update_fields.keys())
-        query = f"UPDATE question SET {set_clause} WHERE question_id = %s"
+        query = f"UPDATE category SET {set_clause} WHERE category_id = %s"
 
         # 파라미터 구성
         params = list(update_fields.values())
-        params.append(question_id)
+        params.append(category_id)
 
         if conn:
             async with conn.cursor() as cursor:
@@ -130,17 +115,17 @@ class QuestionRepository:
                     return cursor.rowcount > 0
 
     @staticmethod
-    async def delete(question_id: int, conn=None) -> bool:
-        """질문 삭제"""
-        query = "DELETE FROM question WHERE question_id = %s"
+    async def delete(category_id: int, conn=None) -> bool:
+        """카테고리 삭제"""
+        query = "DELETE FROM category WHERE category_id = %s"
 
         if conn:
             async with conn.cursor() as cursor:
-                await cursor.execute(query, (question_id,))
+                await cursor.execute(query, (category_id,))
                 return cursor.rowcount > 0
         else:
             pool = await get_mysql_connection()
             async with pool as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute(query, (question_id,))
+                    await cursor.execute(query, (category_id,))
                     return cursor.rowcount > 0

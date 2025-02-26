@@ -1,9 +1,10 @@
 # app/repositories/qna_repository.py
 import logging
 from typing import List, Optional, Dict, Any
-import asyncmy
-from app.models.question import Question, QuestionWithAnswers
+from app.models.qna import QuestionWithAnswers, QuestionWithCategory
+from app.models.question import Question
 from app.models.answer import Answer
+from app.models.category import Category
 from app.core.database import get_mysql_connection
 
 logger = logging.getLogger(__name__)
@@ -22,9 +23,16 @@ class QnARepository:
             a.answer_text,
             a.note as answer_note,
             a.create_at as answer_create_at,
-            a.update_at as answer_update_at
+            a.update_at as answer_update_at,
+            c.category_id,
+            c.name as category_name,
+            c.is_use as category_is_use,
+            c.create_at as category_create_at,
+            c.update_at as category_update_at
         FROM 
             question q
+        JOIN
+            category c ON q.category_id = c.category_id    
         LEFT JOIN 
             answer a ON q.question_id = a.question_id
         WHERE 
@@ -41,8 +49,19 @@ class QnARepository:
                     return None
 
                 # 첫 번째 행에서 질문 정보 추출
-                question_data = {k: v for k, v in rows[0].items() if not k.startswith('answer_')}
+                question_data = {k: v for k, v in rows[0].items()
+                                 if not k.startswith('answer_') and not k.startswith('category_')}
                 question = Question(**question_data)
+
+                # 카테고리 정보 추출
+                category_data = {
+                    'category_id': rows[0]['category_id'],
+                    'name': rows[0]['category_name'],
+                    'is_use': rows[0]['category_is_use'],
+                    'create_at': rows[0]['category_create_at'],
+                    'update_at': rows[0]['category_update_at']
+                }
+                category = Category(**category_data)
 
                 # 답변 목록 생성
                 answers = []
@@ -59,14 +78,14 @@ class QnARepository:
                         }
                         answers.append(Answer(**answer_data))
 
-                # 질문과 답변을 합쳐서 반환
-                return QuestionWithAnswers(**question.dict(), answers=answers)
+                # 질문, 카테고리, 답변을 합쳐서 반환
+                return QuestionWithAnswers(**question.dict(), answers=answers, category=category)
 
     @staticmethod
     async def get_all_questions_with_answers(
             skip: int = 0,
             limit: int = 10,
-            category: Optional[str] = None
+            category_id: Optional[int] = None
     ) -> List[QuestionWithAnswers]:
         """모든 질문과 그에 대한 답변들을 함께 조회 (페이지네이션)"""
         # 기본 쿼리
@@ -80,9 +99,9 @@ class QnARepository:
         params = []
 
         # 카테고리 필터링
-        if category:
-            query += " WHERE q.category = %s"
-            params.append(category)
+        if category_id:
+            query += " WHERE q.category_id = %s"
+            params.append(category_id)
 
         # 정렬 및 페이지네이션
         query += " ORDER BY q.question_id DESC LIMIT %s, %s"

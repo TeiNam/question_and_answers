@@ -1,14 +1,16 @@
 # app/services/qna_service.py
 import logging
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any
 from fastapi import HTTPException, status
-from app.models.question import Question, QuestionCreate, QuestionUpdate, QuestionWithAnswers
+from app.models.question import Question, QuestionCreate, QuestionUpdate
 from app.models.answer import Answer, AnswerCreate, AnswerUpdate
+from app.models.category import Category, CategoryCreate, CategoryUpdate
+from app.models.qna import QuestionWithAnswers
 from app.repositories.question_repository import QuestionRepository
 from app.repositories.answer_repository import AnswerRepository
 from app.repositories.qna_repository import QnARepository
+from app.repositories.category_repository import CategoryRepository
 from app.core.database import get_mysql_connection
-import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,14 @@ class QnAService:
         """질문과 답변을 함께 생성"""
         # MySQL 풀에서 연결 가져오기
         try:
+            # 카테고리 존재 확인
+            category = await CategoryRepository.get_by_id(question.category_id)
+            if not category:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"ID가 {question.category_id}인 카테고리를 찾을 수 없습니다."
+                )
+
             pool = await get_mysql_connection()
             async with pool as conn:
                 # 트랜잭션 시작
@@ -60,6 +70,8 @@ class QnAService:
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         detail=f"질문 및 답변 생성 중 오류 발생: {str(e)}"
                     )
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"데이터베이스 연결 중 오류 발생: {e}")
             raise HTTPException(
@@ -82,10 +94,19 @@ class QnAService:
     async def get_all_questions_with_answers(
             skip: int = 0,
             limit: int = 10,
-            category: Optional[str] = None
+            category_id: Optional[int] = None
     ) -> List[QuestionWithAnswers]:
         """모든 질문과 답변 조회 (페이지네이션 포함)"""
-        return await QnARepository.get_all_questions_with_answers(skip, limit, category)
+        # 카테고리 ID가 제공된 경우 카테고리 존재 확인
+        if category_id:
+            category = await CategoryRepository.get_by_id(category_id)
+            if not category:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"ID가 {category_id}인 카테고리를 찾을 수 없습니다."
+                )
+
+        return await QnARepository.get_all_questions_with_answers(skip, limit, category_id)
 
     @staticmethod
     async def update_question(
@@ -100,6 +121,15 @@ class QnAService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"ID가 {question_id}인 질문을 찾을 수 없습니다."
             )
+
+        # 카테고리 ID가 제공된 경우 카테고리 존재 확인
+        if question_update.category_id:
+            category = await CategoryRepository.get_by_id(question_update.category_id)
+            if not category:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"ID가 {question_update.category_id}인 카테고리를 찾을 수 없습니다."
+                )
 
         # 질문 업데이트
         success = await QuestionRepository.update(question_id, question_update)
