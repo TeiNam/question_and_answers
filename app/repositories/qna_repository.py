@@ -1,12 +1,13 @@
 # app/repositories/qna_repository.py
 import logging
 from typing import List, Optional, Dict, Any
+
 from asyncmy import Connection
-from app.models.qna import QuestionWithAnswers
-from app.models.question import Question
+
 from app.models.answer import Answer
 from app.models.category import Category
-from app.core.database import get_db
+from app.models.qna import QuestionWithAnswers
+from app.models.question import Question
 from app.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)

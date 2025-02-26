@@ -1,7 +1,9 @@
 # app/models/user_score.py
-from pydantic import BaseModel, Field
-from typing import List, Optional
 from datetime import datetime
+from typing import List
+
+from pydantic import BaseModel, Field
+
 
 class UserScoreBase(BaseModel):
     user_id: int

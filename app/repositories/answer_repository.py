@@ -1,8 +1,10 @@
 # app/repositories/answer_repository.py
 import logging
-from typing import List, Optional
+from typing import List
+
 from asyncmy import Connection
-from app.models.answer import Answer, AnswerCreate, AnswerUpdate
+
+from app.models.answer import Answer, AnswerCreate
 from app.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)

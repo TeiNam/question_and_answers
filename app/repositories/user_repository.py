@@ -1,6 +1,6 @@
 # app/repositories/user_repository.py
 import logging
-from typing import Optional
+from typing import Optional, List
 from asyncmy import Connection
 from app.models.user import User, UserCreate, UserUpdate
 from app.repositories.base_repository import BaseRepository
@@ -23,15 +23,16 @@ class UserRepository(BaseRepository[User]):
         hashed_password = get_password_hash(user.password)
 
         query = """
-        INSERT INTO user (email, username, password, is_active, is_admin)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO user (email, username, password, is_active, is_admin, role)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """
         values = (
             user.email,
             user.username,
             hashed_password,
             user.is_active,
-            user.is_admin
+            user.is_admin,
+            user.role
         )
 
         cursor = await cls.execute_query(query, values, conn)
@@ -67,3 +68,13 @@ class UserRepository(BaseRepository[User]):
 
         # 기본 업데이트 메서드 사용
         return await super().update(user_id, update_dict, conn)
+
+    @classmethod
+    async def get_users_by_role(cls, role: str, conn: Connection = None) -> List[User]:
+        """역할별 사용자 목록 조회"""
+        query = "SELECT * FROM user WHERE role = %s ORDER BY user_id"
+
+        cursor = await cls.execute_query(query, (role,), conn)
+        results = await cursor.fetchall()
+
+        return [User(**result) for result in results]

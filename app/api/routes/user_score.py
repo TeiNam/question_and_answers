@@ -1,12 +1,14 @@
 # app/api/routes/user_score.py
-from fastapi import APIRouter, Depends, Query, Path, Body, status, HTTPException
 from typing import List, Dict, Any
+
+from fastapi import APIRouter, Depends, Query, Path, status, HTTPException
+
+from app.api.dependencies import get_current_active_user
+from app.core.exceptions import NotFoundException
+from app.models.submit import SubmitAnswer
 from app.models.user import User
 from app.models.user_score import UserScore, UserScoreSummary
-from app.models.submit import SubmitAnswer
 from app.services.user_score_service import UserScoreService
-from app.core.exceptions import NotFoundException, DatabaseException
-from app.api.dependencies import get_current_active_user
 
 router = APIRouter()
 

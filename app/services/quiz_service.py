@@ -1,17 +1,17 @@
 # app/services/quiz_service.py
 import logging
-from typing import List, Optional, Dict, Any
-from app.models.quiz_session import (
-    QuizSession, QuizSessionCreate, QuizSessionWithStats,
-    SessionQuestion, SessionQuestionCreate
-)
-from app.repositories.quiz_repository import QuizSessionRepository, SessionQuestionRepository
-from app.repositories.qna_repository import QnARepository
-from app.repositories.category_repository import CategoryRepository
-from app.services.user_score_service import UserScoreService
-from app.models.submit import SubmitAnswer
+from typing import List, Dict, Any
+
 from app.core.database import transaction
 from app.core.exceptions import NotFoundException, DatabaseException, ValidationException
+from app.models.quiz_session import (
+    QuizSessionCreate, QuizSessionWithStats
+)
+from app.models.submit import SubmitAnswer
+from app.repositories.category_repository import CategoryRepository
+from app.repositories.qna_repository import QnARepository
+from app.repositories.quiz_repository import QuizSessionRepository, SessionQuestionRepository
+from app.services.user_score_service import UserScoreService
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,10 @@
 # app/repositories/category_repository.py
 import logging
 from typing import List, Optional
+
 from asyncmy import Connection
-from app.models.category import Category, CategoryCreate, CategoryUpdate
+
+from app.models.category import Category, CategoryCreate
 from app.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)

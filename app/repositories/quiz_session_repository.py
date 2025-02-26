@@ -1,13 +1,15 @@
 # app/repositories/quiz_repository.py
 import logging
 from typing import List, Optional, Dict, Any
+
 from asyncmy import Connection
+
+from app.models.category import Category
 from app.models.quiz_session import (
     QuizSession, QuizSessionCreate, QuizSessionWithStats,
-    SessionQuestion, SessionQuestionCreate
+    SessionQuestion
 )
 from app.repositories.base_repository import BaseRepository
-from app.models.category import Category
 
 logger = logging.getLogger(__name__)
 

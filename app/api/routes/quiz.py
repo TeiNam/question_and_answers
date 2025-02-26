@@ -1,12 +1,14 @@
 # app/api/routes/quiz.py
+from typing import List
+
 from fastapi import APIRouter, Depends, Query, Path, Body, status, HTTPException
-from typing import List, Optional
+
+from app.api.dependencies import get_current_active_user
+from app.core.exceptions import NotFoundException
 from app.models.quiz_session import QuizSessionCreate, QuizSessionWithStats
 from app.models.submit import SubmitAnswer
 from app.models.user import User
 from app.services.quiz_service import QuizService
-from app.core.exceptions import NotFoundException, DatabaseException
-from app.api.dependencies import get_current_active_user
 
 router = APIRouter()
 

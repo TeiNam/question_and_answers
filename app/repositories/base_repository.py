@@ -1,9 +1,11 @@
 # app/repositories/base_repository.py
 import logging
-from typing import Any, Dict, List, Optional, TypeVar, Generic, Type, Union
-from pydantic import BaseModel
+from typing import Dict, List, Optional, TypeVar, Generic, Type, Union
+
 from asyncmy import Connection
-from app.core.database import get_db, transaction
+from pydantic import BaseModel
+
+from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 

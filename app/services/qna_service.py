@@ -1,15 +1,18 @@
 # app/services/qna_service.py
 import logging
 from typing import List, Optional, Dict, Any
-from app.models.question import Question, QuestionCreate, QuestionUpdate
-from app.models.answer import Answer, AnswerCreate, AnswerUpdate
-from app.models.qna import QuestionWithAnswers
-from app.repositories.question_repository import QuestionRepository
-from app.repositories.answer_repository import AnswerRepository
-from app.repositories.qna_repository import QnARepository
-from app.repositories.category_repository import CategoryRepository
+
 from app.core.database import transaction
-from app.core.exceptions import NotFoundException, DatabaseException
+from app.core.exceptions import NotFoundException, DatabaseException, ForbiddenException
+from app.models.answer import AnswerCreate, AnswerUpdate
+from app.models.qna import QuestionWithAnswers
+from app.models.question import QuestionCreate, QuestionUpdate
+from app.repositories.answer_repository import AnswerRepository
+from app.repositories.category_repository import CategoryRepository
+from app.repositories.group_repository import GroupRepository
+from app.repositories.qna_repository import QnARepository
+from app.repositories.question_repository import QuestionRepository
+from app.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,24 @@ class QnAService:
             if not category:
                 raise NotFoundException(f"ID가 {question.category_id}인 카테고리를 찾을 수 없습니다.")
 
+            # 출제자 권한 확인
+            user = await UserRepository.get_by_id(question.user_id)
+            if not user:
+                raise NotFoundException(f"ID가 {question.user_id}인 사용자를 찾을 수 없습니다.")
+
+            if user.role != "creator" and user.role != "admin":
+                raise ForbiddenException("문제 생성 권한이 없습니다. 출제자 또는 관리자만 문제를 생성할 수 있습니다.")
+
+            # 그룹 ID가 제공된 경우 존재 확인
+            if question.group_id:
+                group = await GroupRepository.get_by_id(question.group_id)
+                if not group:
+                    raise NotFoundException(f"ID가 {question.group_id}인 그룹을 찾을 수 없습니다.")
+
+                # 그룹 소유자인지 확인
+                if group.user_id != question.user_id and user.role != "admin":
+                    raise ForbiddenException("해당 그룹에 문제를 생성할 권한이 없습니다.")
+
             async with transaction() as conn:
                 # 질문 생성
                 question_id = await QuestionRepository.create(question, conn)
@@ -41,7 +62,7 @@ class QnAService:
                     answer_ids.append(answer_id)
 
                 # 로그 기록
-                logger.info(f"질문 생성 (ID: {question_id}) - 답변 수: {len(answer_ids)}")
+                logger.info(f"질문 생성 (ID: {question_id}) - 출제자: {question.user_id}, 답변 수: {len(answer_ids)}")
 
                 return {
                     "success": True,
@@ -50,7 +71,7 @@ class QnAService:
                     "message": "질문과 답변이 성공적으로 생성되었습니다."
                 }
 
-        except NotFoundException:
+        except (NotFoundException, ForbiddenException):
             raise
         except Exception as e:
             logger.error(f"질문 및 답변 생성 중 오류 발생: {e}")
@@ -69,6 +90,7 @@ class QnAService:
             skip: int = 0,
             limit: int = 10,
             category_id: Optional[int] = None,
+            user_id: int = None,
             is_random: bool = False
     ) -> List[QuestionWithAnswers]:
         """모든 질문과 답변 조회 (페이지네이션 포함)"""
@@ -79,7 +101,32 @@ class QnAService:
                 if not category:
                     raise NotFoundException(f"ID가 {category_id}인 카테고리를 찾을 수 없습니다.")
 
-            return await QnARepository.get_all_questions_with_answers(skip, limit, category_id, is_random)
+            # 사용자 정보 확인
+            user = None
+            if user_id:
+                user = await UserRepository.get_by_id(user_id)
+                if not user:
+                    raise NotFoundException(f"ID가 {user_id}인 사용자를 찾을 수 없습니다.")
+
+            # 사용자 권한에 따라 조회할 질문 결정
+            if user and user.role in ["creator", "admin"]:
+                # 출제자나 관리자는 모든 질문 조회 가능
+                return await QnARepository.get_all_questions_with_answers(skip, limit, category_id, is_random)
+            elif user:
+                # 풀이자는 자신이 속한 그룹의 질문 또는 그룹 제한이 없는 질문만 조회 가능
+                questions = await QuestionRepository.get_available_questions_for_user(user_id, skip, limit, category_id)
+
+                # 각 질문에 대한 상세 정보 조회
+                results = []
+                for q in questions:
+                    question_with_answers = await QnARepository.get_question_with_answers(q.question_id)
+                    if question_with_answers:
+                        results.append(question_with_answers)
+
+                return results
+            else:
+                # 사용자 정보가 없으면 그룹 제한이 없는 질문만 조회
+                return await QnARepository.get_all_questions_with_answers(skip, limit, category_id, is_random)
         except NotFoundException:
             raise
         except Exception as e:

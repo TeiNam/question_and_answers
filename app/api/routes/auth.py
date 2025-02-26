@@ -1,11 +1,13 @@
 # app/api/routes/auth.py
+from typing import Dict, Any
+
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import Dict, Any
+
+from app.api.dependencies import get_current_active_user
+from app.core.exceptions import ValidationException, UnauthorizedException
 from app.models.user import UserCreate, UserLogin, UserUpdate, User
 from app.services.user_service import UserService
-from app.api.dependencies import get_current_active_user
-from app.core.exceptions import ValidationException, UnauthorizedException, NotFoundException, DatabaseException
 
 router = APIRouter()
 

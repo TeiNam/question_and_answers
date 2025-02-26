@@ -1,10 +1,10 @@
 # tests/test_qna_api.py
+import asyncio
+
 import pytest
 from httpx import AsyncClient
-from typing import Dict, List, Any
-import asyncio
+
 from main import app
-from fastapi.testclient import TestClient
 
 # 테스트용 관리자 계정
 TEST_ADMIN = {

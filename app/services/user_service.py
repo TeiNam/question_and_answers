@@ -1,12 +1,12 @@
 # app/services/user_service.py
 import logging
-from typing import Dict, Any, Optional
-from datetime import timedelta
+from typing import Dict, Any, Optional, List
+
+from app.core.auth import verify_password, create_access_token, create_user_response
+from app.core.exceptions import NotFoundException, ValidationException, UnauthorizedException, DatabaseException, \
+    ForbiddenException
 from app.models.user import User, UserCreate, UserLogin, UserUpdate
 from app.repositories.user_repository import UserRepository
-from app.core.exceptions import NotFoundException, ValidationException, UnauthorizedException, DatabaseException
-from app.core.auth import verify_password, get_password_hash, create_access_token, create_user_response
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +124,7 @@ class UserService:
                     "email": updated_user.email,
                     "username": updated_user.username,
                     "is_admin": updated_user.is_admin == "Y",
+                    "role": updated_user.role,
                     "is_active": updated_user.is_active == "Y"
                 }
             }
@@ -134,4 +135,59 @@ class UserService:
             raise
         except Exception as e:
             logger.error(f"사용자 정보 업데이트 중 오류 발생: {e}")
+            raise DatabaseException(str(e))
+
+    @staticmethod
+    async def update_user_role(user_id: int, role: str, admin_id: int) -> Dict[str, Any]:
+        """사용자 역할 업데이트 (관리자만 가능)"""
+        try:
+            # 관리자 권한 확인
+            admin = await UserRepository.get_by_id(admin_id)
+            if not admin or admin.role != "admin":
+                raise ForbiddenException("사용자 역할을 변경할 권한이 없습니다.")
+
+            # 사용자 존재 확인
+            user = await UserRepository.get_by_id(user_id)
+            if not user:
+                raise NotFoundException(f"ID가 {user_id}인 사용자를 찾을 수 없습니다.")
+
+            # 유효한 역할 확인
+            valid_roles = ["admin", "creator", "solver"]
+            if role not in valid_roles:
+                raise ValidationException(f"유효하지 않은 역할입니다. 가능한 역할: {', '.join(valid_roles)}")
+
+            # 역할 업데이트
+            update_data = {"role": role}
+            success = await UserRepository.update(user_id, update_data)
+
+            return {
+                "success": success,
+                "message": f"사용자의 역할이 '{role}'로 업데이트되었습니다."
+            }
+        except (NotFoundException, ForbiddenException, ValidationException):
+            raise
+        except Exception as e:
+            logger.error(f"사용자 역할 업데이트 중 오류 발생: {e}")
+            raise DatabaseException(str(e))
+
+    @staticmethod
+    async def get_users_by_role(role: str, admin_id: int) -> List[User]:
+        """역할별 사용자 목록 조회 (관리자만 가능)"""
+        try:
+            # 관리자 권한 확인
+            admin = await UserRepository.get_by_id(admin_id)
+            if not admin or admin.role != "admin":
+                raise ForbiddenException("역할별 사용자 목록을 조회할 권한이 없습니다.")
+
+            # 유효한 역할 확인
+            valid_roles = ["admin", "creator", "solver"]
+            if role not in valid_roles:
+                raise ValidationException(f"유효하지 않은 역할입니다. 가능한 역할: {', '.join(valid_roles)}")
+
+            # 역할별 사용자 조회
+            return await UserRepository.get_users_by_role(role)
+        except (ForbiddenException, ValidationException):
+            raise
+        except Exception as e:
+            logger.error(f"역할별 사용자 목록 조회 중 오류 발생: {e}")
             raise DatabaseException(str(e))

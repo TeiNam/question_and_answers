@@ -1,13 +1,14 @@
 # app/services/user_score_service.py
 import logging
 from typing import List, Dict, Any
-from app.models.user_score import UserScore, UserScoreCreate, UserCategoryStat, UserScoreSummary
-from app.models.submit import SubmitAnswer
-from app.repositories.user_score_repository import UserScoreRepository, UserCategoryStatRepository
-from app.repositories.question_repository import QuestionRepository
-from app.repositories.qna_repository import QnARepository
+
 from app.core.database import transaction
 from app.core.exceptions import NotFoundException, DatabaseException
+from app.models.submit import SubmitAnswer
+from app.models.user_score import UserScore, UserScoreCreate, UserScoreSummary
+from app.repositories.qna_repository import QnARepository
+from app.repositories.question_repository import QuestionRepository
+from app.repositories.user_score_repository import UserScoreRepository, UserCategoryStatRepository
 
 logger = logging.getLogger(__name__)
 

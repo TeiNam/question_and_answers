@@ -1,13 +1,15 @@
 # main.py
 import logging
-from fastapi import FastAPI, Depends, Request
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from app.api.routes import api_router
 from app.core.config import settings
 from app.core.database import close_db_connections, init_db_pool
-from app.api.routes import api_router
 from app.core.exceptions import NotFoundException, DatabaseException, ValidationException
-from contextlib import asynccontextmanager
 
 # 로깅 설정
 logging.basicConfig(

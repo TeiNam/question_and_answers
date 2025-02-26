@@ -1,8 +1,10 @@
 # app/repositories/user_score_repository.py
 import logging
 from typing import List, Optional, Dict, Any
+
 from asyncmy import Connection
-from app.models.user_score import UserScore, UserScoreCreate, UserCategoryStat, UserCategoryStatCreate
+
+from app.models.user_score import UserScore, UserScoreCreate, UserCategoryStat
 from app.repositories.base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)

@@ -1,11 +1,13 @@
 # app/api/routes/category.py
-from fastapi import APIRouter, Depends, Query, Path, Body, status, HTTPException
 from typing import List, Optional
+
+from fastapi import APIRouter, Depends, Query, Path, status, HTTPException
+
+from app.api.dependencies import get_current_active_user, get_current_admin_user
+from app.core.exceptions import NotFoundException, ValidationException
 from app.models.category import Category, CategoryCreate, CategoryUpdate
 from app.models.user import User
 from app.services.category_service import CategoryService
-from app.core.exceptions import NotFoundException, ValidationException, DatabaseException
-from app.api.dependencies import get_current_active_user, get_current_admin_user
 
 router = APIRouter()
 
