@@ -1,5 +1,6 @@
 # app/core/auth.py
 import jwt
+import uuid
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from app.core.config import settings
@@ -21,7 +22,7 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
-    """JWT 액세스 토큰 생성"""
+    """JWT 액세스 토큰 생성 (JTI 포함)"""
     to_encode = data.copy()
 
     # 만료 시간 설정
@@ -32,8 +33,15 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
-    # 토큰 데이터에 만료 시간 추가
-    to_encode.update({"exp": expire})
+    # 고유 JWT ID 생성
+    jti = str(uuid.uuid4())
+
+    # 토큰 데이터에 만료 시간과 JTI 추가
+    to_encode.update({
+        "exp": expire,
+        "jti": jti,
+        "iat": datetime.utcnow()  # 발행 시간
+    })
 
     # JWT 인코딩
     encoded_jwt = jwt.encode(
@@ -47,6 +55,23 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
 
 def create_user_response(user: User, access_token: str) -> Dict[str, Any]:
     """사용자 응답 데이터 생성"""
+    # 토큰에서 데이터 추출하여 응답에 포함
+    try:
+        token_data = jwt.decode(
+            access_token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+
+        # 토큰에서 is_admin과 role 값을 추출
+        is_admin = token_data.get("is_admin", False)
+        role = token_data.get("role", "solver")
+
+    except:
+        # 토큰 디코딩에 실패하면 기본값 사용
+        is_admin = user.is_admin == "Y"
+        role = user.role
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -54,6 +79,7 @@ def create_user_response(user: User, access_token: str) -> Dict[str, Any]:
             "user_id": user.user_id,
             "email": user.email,
             "username": user.username,
-            "is_admin": user.is_admin == "Y"
+            "is_admin": is_admin,
+            "role": role
         }
     }

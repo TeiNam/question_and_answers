@@ -1,0 +1,39 @@
+### 환경 변수 설정
+@baseUrl = http://localhost:8000/api/v1
+@contentType = application/json
+
+### 1. 일반 사용자 로그인
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "solver_test@example.com",
+  "password": "password123"
+}
+
+### 2. 관리자 로그인
+POST {{baseUrl}}/auth/admin/login
+Content-Type: {{contentType}}
+
+{
+  "email": "teinam@rastalion.dev",
+  "password": "Rjadmsrhdid2@"
+}
+
+### 3. 관리자 계정으로 일반 로그인 시도 (성공함)
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "teinam@rastalion.dev",
+  "password": "Rjadmsrhdid2@"
+}
+
+### 4. 일반 계정으로 관리자 로그인 시도 (실패함 - 403 Forbidden)
+POST {{baseUrl}}/auth/admin/login
+Content-Type: {{contentType}}
+
+{
+  "email": "solver_test@example.com",
+  "password": "password123"
+}

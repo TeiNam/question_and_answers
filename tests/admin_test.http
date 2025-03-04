@@ -1,0 +1,155 @@
+### 환경 변수 설정
+@baseUrl = http://localhost:8000/api/v1
+@contentType = application/json
+@userToken = 여기에_일반유저_토큰_입력
+@adminToken = 여기에_관리자_토큰_입력
+
+### 1. 회원 가입 - 일반 사용자
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "user1@example.com",
+  "username": "일반사용자1",
+  "password": "password123"
+}
+
+### 2. 회원 가입 - 출제자 (기본 role은 solver로 설정되어 역할 변경 요청 필요)
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "creator1@example.com",
+  "username": "출제자1",
+  "password": "password123"
+}
+
+### 3. 회원 가입 - 관리자 (테스트 목적)
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "username": "관리자",
+  "password": "admin123",
+  "is_admin": "Y",
+  "role": "admin"
+}
+
+### 4. 일반 사용자 로그인
+# 응답에서 access_token을 복사하여 userToken 변수에 설정하세요
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "user1@example.com",
+  "password": "password123"
+}
+
+### 5. 관리자 로그인
+# 응답에서 access_token을 복사하여 adminToken 변수에 설정하세요
+POST {{baseUrl}}/auth/admin/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+### === 일반 사용자 API 테스트 ===
+
+### 6. 내 정보 조회 (일반 사용자)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{userToken}}
+
+### 7. 내 정보 업데이트 (일반 사용자)
+PUT {{baseUrl}}/auth/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "username": "수정된사용자이름"
+}
+
+### 8. 풀이자 목록 조회 (일반 사용자도 조회 가능)
+GET {{baseUrl}}/auth/solvers
+Authorization: Bearer {{userToken}}
+
+### 9. 일반 사용자의 관리자 전용 API 접근 시도 (실패 예상)
+GET {{baseUrl}}/auth/admin/users
+Authorization: Bearer {{userToken}}
+
+### === 관리자 API 테스트 ===
+
+### 10. 모든 사용자 목록 조회 (관리자 전용)
+GET {{baseUrl}}/auth/admin/users
+Authorization: Bearer {{adminToken}}
+
+### 11. 역할별 사용자 목록 조회 - 풀이자 (관리자 전용)
+GET {{baseUrl}}/auth/admin/users?role=solver
+Authorization: Bearer {{adminToken}}
+
+### 12. 역할별 사용자 목록 조회 - 출제자 (관리자 전용)
+GET {{baseUrl}}/auth/admin/users?role=creator
+Authorization: Bearer {{adminToken}}
+
+### 13. 역할별 사용자 목록 조회 - 관리자 (관리자 전용)
+GET {{baseUrl}}/auth/admin/users?role=admin
+Authorization: Bearer {{adminToken}}
+
+### 14. 특정 사용자 상세 정보 조회 (관리자 전용) - ID는 실제 사용자 ID로 대체
+GET {{baseUrl}}/auth/admin/users/1
+Authorization: Bearer {{adminToken}}
+
+### 15. 사용자 정보 업데이트 - 역할 변경 (관리자 전용)
+PUT {{baseUrl}}/auth/admin/users/2
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "role": "creator",
+  "username": "출제자로변경"
+}
+
+### 16. 사용자 정보 업데이트 - 활성화 상태 변경 (관리자 전용)
+PUT {{baseUrl}}/auth/admin/users/3
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "is_active": "N",
+  "admin_comment": "비활성화 처리"
+}
+
+### === 역할 변경 요청 및 승인 테스트 ===
+
+### 17. 일반 사용자가 출제자 역할 요청
+POST {{baseUrl}}/role-requests/
+Content-Type: {{contentType}}
+Authorization: Bearer {{userToken}}
+
+{
+  "role": "creator",
+  "reason": "저는 문제 출제에 관심이 많으며, 다양한 문제를 제작하여 플랫폼에 기여하고 싶습니다."
+}
+
+### 18. 내 역할 변경 요청 내역 조회
+GET {{baseUrl}}/role-requests/me
+Authorization: Bearer {{userToken}}
+
+### 19. 관리자: 대기 중인 역할 변경 요청 목록 조회
+GET {{baseUrl}}/role-requests/pending
+Authorization: Bearer {{adminToken}}
+
+### 20. 관리자: 역할 변경 요청 승인 (실제 요청 ID 사용)
+POST {{baseUrl}}/role-requests/1/approve
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "admin_comment": "출제자 역할 승인합니다. 좋은 문제 많이 출제해주세요."
+}
+
+### 21. 승인된 새 토큰으로 내 정보 확인 (새 토큰 복사하여 사용)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer 여기에_역할변경_후_발급된_새_토큰_입력

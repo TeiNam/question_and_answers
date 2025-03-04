@@ -1,7 +1,7 @@
 ### 환경 변수 설정
 @baseUrl = http://localhost:8000/api/v1
 @contentType = application/json
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWlubUByYXN0YWxpb24uZGV2IiwidXNlcl9pZCI6MSwiZXhwIjoxNzQwNTUyNzIzfQ.XLfnNlRUo__XUXWcHZH1oBt92SSriZX_KJIG1ywT1vI
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZWlubUByYXN0YWxpb24uZGV2IiwidXNlcl9pZCI6MSwiZXhwIjoxNzQxMDA3MTAwfQ.TFOHjR7ki7TqAs51ZLK5PGkUmUPxguZ_lHkbwN0LC0E
 
 ### 1. 사용자 등록 (회원가입)
 POST {{baseUrl}}/auth/register
@@ -19,7 +19,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "email": "teinm@rastalion.dev",
+  "email": "teinam@rastalion.dev",
   "password": "Rjadmsrhdid2@"
 }
 

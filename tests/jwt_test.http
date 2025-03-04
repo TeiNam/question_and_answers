@@ -1,0 +1,97 @@
+### 환경 변수 설정
+@baseUrl = http://localhost:8000/api/v1
+@contentType = application/json
+@userToken = 여기에_일반유저_토큰_입력
+@adminToken = 여기에_관리자_토큰_입력
+@creatorToken = 여기에_출제자_토큰_입력
+
+### 1. 일반 사용자 로그인 및 토큰 발급
+# 응답에서 access_token 값을 복사하여 위의 userToken 변수에 설정하세요
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+### 2. 관리자 로그인 및 토큰 발급
+# 응답에서 access_token 값을 복사하여 위의 adminToken 변수에 설정하세요
+POST {{baseUrl}}/auth/admin/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+### 3. 출제자 계정 등록 및 로그인
+# 먼저 출제자 계정 등록
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "creator@example.com",
+  "username": "출제자",
+  "password": "creator123",
+  "role": "creator"
+}
+
+### 출제자 로그인
+# 응답에서 access_token 값을 복사하여 위의 creatorToken 변수에 설정하세요
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "creator@example.com",
+  "password": "creator123"
+}
+
+### 4. 토큰 데이터 확인 (일반 사용자)
+GET {{baseUrl}}/jwt-test/token-data
+Authorization: Bearer {{userToken}}
+
+### 5. 토큰 데이터 확인 (관리자)
+GET {{baseUrl}}/jwt-test/token-data
+Authorization: Bearer {{adminToken}}
+
+### 6. 사용자 역할 정보 확인 (일반 사용자)
+GET {{baseUrl}}/jwt-test/user-role
+Authorization: Bearer {{userToken}}
+
+### 7. 사용자 역할 정보 확인 (관리자)
+GET {{baseUrl}}/jwt-test/user-role
+Authorization: Bearer {{adminToken}}
+
+### 8. 관리자 전용 API 접근 (일반 사용자 - 실패)
+GET {{baseUrl}}/jwt-test/admin-only
+Authorization: Bearer {{userToken}}
+
+### 9. 관리자 전용 API 접근 (관리자 - 성공)
+GET {{baseUrl}}/jwt-test/admin-only
+Authorization: Bearer {{adminToken}}
+
+### 10. 출제자 전용 API 접근 (일반 사용자 - 실패)
+GET {{baseUrl}}/jwt-test/creator-only
+Authorization: Bearer {{userToken}}
+
+### 11. 출제자 전용 API 접근 (출제자 - 성공)
+GET {{baseUrl}}/jwt-test/creator-only
+Authorization: Bearer {{creatorToken}}
+
+### 12. 출제자 전용 API 접근 (관리자 - 실패)
+# 관리자라도 role이 다르면 접근 불가
+GET {{baseUrl}}/jwt-test/creator-only
+Authorization: Bearer {{adminToken}}
+
+### 13. OAuth2 호환 액세스 토큰 (일반 로그인)
+POST {{baseUrl}}/auth/login/access-token
+Content-Type: application/x-www-form-urlencoded
+
+username=user@example.com&password=password123
+
+### 14. OAuth2 호환 액세스 토큰 (관리자 로그인 - scope 사용)
+POST {{baseUrl}}/auth/login/access-token
+Content-Type: application/x-www-form-urlencoded
+
+username=admin@example.com&password=admin123&scope=admin
